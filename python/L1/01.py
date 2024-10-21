@@ -1,6 +1,6 @@
 import math
 
-def oblicz_kule(promien):
+def oblicz_kula(promien):
     objetosc = (4/3) * math.pi * promien**3
     pole = 4 * math.pi * promien**2
     return objetosc, pole
@@ -16,18 +16,18 @@ def oblicz_stozek(promien, wysokosc):
     pole = math.pi * promien * (promien + tworzaca)
     return objetosc, pole
 
-def main(typ_bryly, wymiary):
-    if typ_bryly == "kula":
-        return oblicz_kule(*wymiary)
-    elif typ_bryly == "prostopadloscian":
+def main(bryla, wymiary):
+    if bryla == "kula":
+        return oblicz_kula(*wymiary)
+    elif bryla == "prostopadloscian":
         return oblicz_prostopadloscian(*wymiary)
-    elif typ_bryly == "stozek":
+    elif bryla == "stozek":
         return oblicz_stozek(*wymiary)
     else:
         return "Nieprawidłowy wybór"
 
 def menu():
-    print("Wybierz bryłę do obliczenia:")
+    print("Wybierz bryłę:")
     print("1. Kula")
     print("2. Prostopadłościan")
     print("3. Stożek")
