@@ -5,6 +5,14 @@ def menu():
     print("4. Zakończ program")
     return input("Wybierz opcję: ").strip()
 
+def wprowadz_ocene(oceny, przedmiot):
+    ocena = float(input(f"Podaj ocenę dla {przedmiot}: "))
+
+    if przedmiot in oceny:
+        oceny[przedmiot].append(ocena)
+    else:
+        oceny[przedmiot] = [ocena]
+
 def dodaj_oceny():
     oceny = {}
 
@@ -13,16 +21,11 @@ def dodaj_oceny():
 
         if opcja == '1':
             przedmiot = input("Podaj nazwę przedmiotu: ").strip() 
-            ocena = float(input(f"Podaj ocenę dla {przedmiot}: "))
-
-            if przedmiot in oceny:
-                oceny[przedmiot].append(ocena)
-            else:
-                oceny[przedmiot] = [ocena]
-
-            kontynuuj = input("Czy chcesz dodać kolejną ocenę? (y/n): ").strip().lower()
-            if kontynuuj == 'n':
-                continue
+            while True:
+                wprowadz_ocene(oceny, przedmiot)
+                kontynuuj = input("Czy chcesz dodać kolejną ocenę dla tego samego przedmiotu? [t/n]: ").strip().lower()
+                if kontynuuj == 'n':
+                    break
 
         elif opcja == '2':
             policz_srednia_z_przedmiotu(oceny)
@@ -41,7 +44,7 @@ def policz_srednia_z_przedmiotu(oceny):
     przedmiot = input("Podaj nazwę przedmiotu, dla którego chcesz policzyć średnią: ").strip()
     if przedmiot in oceny:
         srednia = sum(oceny[przedmiot]) / len(oceny[przedmiot])
-        print(f"Średnia z {przedmiot}: {srednia:.2f}")
+        print(f"Średnia z przedmiotu {przedmiot}: {srednia:.2f}")
     else:
         print(f"Nie ma ocen dla przedmiotu {przedmiot}")
 
