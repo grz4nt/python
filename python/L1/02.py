@@ -1,8 +1,11 @@
+# sprawdzic zagrozenia z przedmiotow (<2)
+
 def menu():
     print("1. Dodaj ocenę")
     print("2. Oblicz średnią z przedmiotu")
     print("3. Oblicz średnią ze wszystkich przedmiotów")
-    print("4. Zakończ program")
+    print("4. Sprawdz zagrozenia")
+    print("5. Zakończ program")
     return input("Wybierz opcję: ").strip()
 
 def wprowadz_ocene(oceny, przedmiot):
@@ -12,6 +15,28 @@ def wprowadz_ocene(oceny, przedmiot):
         oceny[przedmiot].append(ocena)
     else:
         oceny[przedmiot] = [ocena]
+        
+def srednia_przedmiot(oceny):
+    przedmiot = input("Podaj nazwę przedmiotu, dla którego chcesz policzyć średnią: ").strip()
+    if przedmiot in oceny:
+        srednia = sum(oceny[przedmiot]) / len(oceny[przedmiot])
+        print(f"Średnia z przedmiotu {przedmiot}: {srednia:.2f}")
+    else:
+        print(f"Nie ma ocen dla przedmiotu {przedmiot}")
+
+def srednia_ogolna(oceny):
+    suma_ocen = sum(sum(lista_ocen) for lista_ocen in oceny.values())
+    liczba_ocen = sum(len(lista_ocen) for lista_ocen in oceny.values())
+    srednia_ogolna = suma_ocen / liczba_ocen if liczba_ocen > 0 else 0
+    print(f"Średnia ogólna: {srednia_ogolna:.2f}")
+    
+def zagrozenie(oceny):
+    zaliczenie = 2.0
+    for przedmiot in oceny:
+        srednia = sum(oceny[przedmiot]) / len(oceny[przedmiot])
+        if srednia < zaliczenie:
+            print(f"Zagrozenie z {przedmiot}: {srednia:.2f}")
+
 
 def dodaj_oceny():
     oceny = {}
@@ -28,30 +53,19 @@ def dodaj_oceny():
                     break
 
         elif opcja == '2':
-            policz_srednia_z_przedmiotu(oceny)
+            srednia_przedmiot(oceny)
 
         elif opcja == '3':
-            policz_srednia_ogolna(oceny)
-
+            srednia_ogolna(oceny)
+            
         elif opcja == '4':
+            zagrozenie(oceny)
+
+        elif opcja == '5':
             print("Zakończono program.")
             break
 
         else:
             print("Niepoprawna opcja. Spróbuj ponownie.")
-
-def policz_srednia_z_przedmiotu(oceny):
-    przedmiot = input("Podaj nazwę przedmiotu, dla którego chcesz policzyć średnią: ").strip()
-    if przedmiot in oceny:
-        srednia = sum(oceny[przedmiot]) / len(oceny[przedmiot])
-        print(f"Średnia z przedmiotu {przedmiot}: {srednia:.2f}")
-    else:
-        print(f"Nie ma ocen dla przedmiotu {przedmiot}")
-
-def policz_srednia_ogolna(oceny):
-    suma_ocen = sum(sum(lista_ocen) for lista_ocen in oceny.values())
-    liczba_ocen = sum(len(lista_ocen) for lista_ocen in oceny.values())
-    srednia_ogolna = suma_ocen / liczba_ocen if liczba_ocen > 0 else 0
-    print(f"Średnia ogólna: {srednia_ogolna:.2f}")
 
 dodaj_oceny()

@@ -1,3 +1,5 @@
+
+
 import funkcje
 
 def main():
