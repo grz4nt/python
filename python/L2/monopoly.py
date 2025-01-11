@@ -1,121 +1,209 @@
 import random
+import abc
+import pickle
+import os
+
+class Pole(abc.ABC):
+    def __init__(self, nazwa):
+        self.nazwa = nazwa
+
+    @abc.abstractmethod
+    def akcja(self, gracz):
+        """Abstrakcyjna metoda akcji dla danego pola"""
+        pass
+
+class PoleNieruchomosciowe(Pole):
+    def __init__(self, nazwa, koszt, bazowy_czynsz):
+        super().__init__(nazwa)
+        self.wlasciciel = None
+        self.koszt = koszt
+        self.bazowy_czynsz = bazowy_czynsz
+        self.poziom_ulepszenia = 0
+
+    def akcja(self, gracz):
+        if not self.wlasciciel:
+            if gracz.pieniadze >= self.koszt:
+                gracz.kup_nieruchomosc(self)
+        elif self.wlasciciel != gracz:
+            oplata = self.oblicz_czynsz()
+            if gracz.pieniadze >= oplata:
+                gracz.zaplac(oplata, self.wlasciciel)
+
+    def oblicz_czynsz(self):
+        return self.bazowy_czynsz * (1 + 0.5 * self.poziom_ulepszenia)
+
+    def ulepsz(self):
+        if self.poziom_ulepszenia < 4:
+            self.poziom_ulepszenia += 1
+            return True
+        return False
+
+class Miasto(PoleNieruchomosciowe):
+    def __init__(self, nazwa, koszt, bazowy_czynsz):
+        super().__init__(nazwa, koszt, bazowy_czynsz)
+
+class Dworzec(PoleNieruchomosciowe):
+    def __init__(self, nazwa, koszt):
+        super().__init__(nazwa, koszt, bazowy_czynsz=50)
+
+    def oblicz_czynsz(self):
+        return self.bazowy_czynsz * (2 ** (self.wlasciciel.liczba_dworcy() - 1))
+
+class UslugiUzytkowe(PoleNieruchomosciowe):
+    def __init__(self, nazwa, koszt):
+        super().__init__(nazwa, koszt, bazowy_czynsz=20)
+
+    def oblicz_czynsz(self):
+        return self.bazowy_czynsz * (10 ** (self.wlasciciel.liczba_uslug() - 1))
 
 class Gracz:
-    def __init__(self, name, pieniadze):
-        self.name = name
+    def __init__(self, nazwa, pieniadze=1500):
+        self.nazwa = nazwa
         self.pieniadze = pieniadze
         self.pozycja = 0
-        self.w_wiezieniu = False
-        self.karta_wiezienie = False
         self.nieruchomosci = []
-        self.ile_dworzec = 0
-        self.ile_uzytek = 0
-        self.ile_dom = 0
-        self.ile_hotel = 0
 
-    def przesun(self, ruchy, liczba_pol):
-        self.pozycja = (self.pozycja + ruchy) % liczba_pol
+    def kup_nieruchomosc(self, nieruchomosc):
+        if self.pieniadze >= nieruchomosc.koszt:
+            self.pieniadze -= nieruchomosc.koszt
+            self.nieruchomosci.append(nieruchomosc)
+            nieruchomosc.wlasciciel = self
 
+    def zaplac(self, kwota, odbiorca):
+        if self.pieniadze >= kwota:
+            self.pieniadze -= kwota
+            odbiorca.pieniadze += kwota
 
-class Pole:
-    def __init__(self, name):
-        self.name = name
-        self.owner = None
+    def liczba_dworcy(self):
+        return sum(1 for n in self.nieruchomosci if isinstance(n, Dworzec))
 
+    def liczba_uslug(self):
+        return sum(1 for n in self.nieruchomosci if isinstance(n, UslugiUzytkowe))
 
-class PoleNieruchomosc(Pole):
-    def __init__(self, name, koszt, wynajem):
-        super().__init__(name)
-        self.koszt = koszt
-        self.wynajem = wynajem
-
-
-class Miasto(PoleNieruchomosc):
-    def __init__(self, name, koszt, czynsz):
-        super().__init__(name, koszt, czynsz[0])
-        self.cena = koszt
-        self.czynsz = czynsz
-        self.ile_dom = 0
-        self.ile_hotel = 0
-
-
-class Uzytek(PoleNieruchomosc):
-    pass
-
-
-class Dworzec(PoleNieruchomosc):
-    pass
-
-
-class Kosc:
+class Plansza:
     def __init__(self):
-        self.kosc_rzucona = False
-        self.wynik_rzutu = 0
-        self.ile_ruchu = 0
+        self.pola = [
+            # Miasta
+            Miasto("Warszawa", 250, 50),
+            Miasto("Kraków", 200, 40),
+            Miasto("Gdańsk", 180, 35),
+            Miasto("Wrocław", 220, 45),
+            Miasto("Poznań", 190, 38),
+            Miasto("Łódź", 160, 32),
+            Miasto("Katowice", 240, 48),
+            Miasto("Lublin", 170, 34),
+            Miasto("Szczecin", 210, 42),
+            Miasto("Bydgoszcz", 180, 36),
+            Miasto("Białystok", 150, 30),
+            Miasto("Rzeszów", 190, 38),
+            Miasto("Opole", 170, 34),
+            Miasto("Zielona Góra", 160, 32),
+            Miasto("Gorzów Wielkopolski", 180, 36),
+            Miasto("Olsztyn", 190, 38),
+            Miasto("Kielce", 170, 34),
+            Miasto("Toruń", 160, 32),
+            Miasto("Jelenia Góra", 180, 36),
+            Miasto("Kalisz", 150, 30),
+            Miasto("Elbląg", 140, 28),
+            Miasto("Radom", 160, 32),
 
-    def rzuc(self):
-        self.kosc_rzucona = True
-        self.wynik_rzutu = random.randint(1, 6)
-        self.ile_ruchu = self.wynik_rzutu
-        return self.wynik_rzutu
+            # Dworce
+            Dworzec("Dworzec Centralny", 300),
+            Dworzec("Dworzec Zachodni", 250),
+            Dworzec("Dworzec Wschodni", 250),
+            Dworzec("Dworzec Południowy", 300),
 
+            # Usługi użytkowe
+            UslugiUzytkowe("Elektrownia", 250),
+            UslugiUzytkowe("Wodociągi", 220),
+            UslugiUzytkowe("Gazownia", 200)
+        ]
 
-class Bankier:
-    def __init__(self, suma_pieniadze):
-        self.suma_pieniadze = suma_pieniadze
+class Gra:
+    def __init__(self, gracze):
+        self.plansza = Plansza()
+        self.gracze = gracze
+        self.tura = 0
 
-    def dodaj_pieniadze(self, gracz, kwota):
-        gracz.pieniadze += kwota
+    def wykonaj_ture(self):
+        aktualny_gracz = self.gracze[self.tura % len(self.gracze)]
+        rzut = random.randint(1, 6)
+        aktualny_gracz.pozycja = (aktualny_gracz.pozycja + rzut) % len(self.plansza.pola)
+        
+        pole = self.plansza.pola[aktualny_gracz.pozycja]
+        pole.akcja(aktualny_gracz)
+        
+        self.tura += 1
 
-    def zabierz_pieniadze(self, gracz, kwota):
-        gracz.pieniadze -= kwota
+    def zapisz_stan(self, nazwa_pliku):
+        with open(nazwa_pliku, 'wb') as plik:
+            pickle.dump(self, plik)
 
-    def ustaw_wlasciciela(self, pole, gracz):
-        pole.owner = gracz
-
+    @classmethod
+    def wczytaj_stan(cls, nazwa_pliku):
+        with open(nazwa_pliku, 'rb') as plik:
+            return pickle.load(plik)
 
 def main():
-    random.seed()
-    liczba_pol = 40
+    # Przykładowe użycie
+    gracze = [Gracz("Gracz1"), Gracz("Gracz2")]
+    gra = Gra(gracze)
 
-    # Tworzenie graczy
-    grzegorz = Gracz("Grzegorz", 1500)
-    janusz = Gracz("Janusz", 1500)
+    # Symulacja kilku tur
+    for _ in range(10):
+        gra.wykonaj_ture()
 
-    # Tworzenie bankiera
-    bankier = Bankier(10000)
-    bankier.dodaj_pieniadze(grzegorz, 500)
-    bankier.dodaj_pieniadze(janusz, 500)
+    # Zapis stanu gry
+    gra.zapisz_stan("stan_gry.pkl")
 
-    # Tworzenie nieruchomości
-    aten = Miasto("Ateny", 200, [5, 15, 25, 35, 45, 55])
-    madryt = Miasto("Madryt", 450, [15, 25, 35, 45, 55, 65])
+    # Wczytanie stanu gry
+    wczytana_gra = Gra.wczytaj_stan("stan_gry.pkl")
 
-    grzegorz.nieruchomosci.append(aten)
-    janusz.nieruchomosci.append(madryt)
+def demo_gry():
+    # Stworzenie graczy
+    gracz1 = Gracz("Grzegorz")
+    gracz2 = Gracz("Janusz")
+    gracze = [gracz1, gracz2]
 
-    # Tworzenie kostki
-    kosc = Kosc()
+    # Stworzenie planszy
+    plansza = Plansza()
 
-    # Symulacja ruchu
-    for _ in range(3):
-        wynik_grzegorz = kosc.rzuc()
-        print(f"Wynik rzutu Grzegorz: {wynik_grzegorz}")
-        grzegorz.przesun(wynik_grzegorz, liczba_pol)
+    print("Początkowy stan graczy:")
+    for gracz in gracze:
+        print(f"{gracz.nazwa}: pieniądze = {gracz.pieniadze}")
 
-        wynik_janusz = kosc.rzuc()
-        print(f"Wynik rzutu Janusz: {wynik_janusz}")
-        janusz.przesun(wynik_janusz, liczba_pol)
+    # Symulacja 5 ruchów
+    for i in range(5):
+        print(f"\n--- Tura {i+1} ---")
+        
+        for gracz in gracze:
+            # Rzut kostką
+            rzut = random.randint(1, 6)
+            print(f"{gracz.nazwa} rzuca kostką: {rzut}")
+            
+            # Zmiana pozycji
+            gracz.pozycja = (gracz.pozycja + rzut) % len(plansza.pola)
+            
+            # Aktualne pole
+            aktualnie_pole = plansza.pola[gracz.pozycja]
+            print(f"{gracz.nazwa} trafia na pole: {aktualnie_pole.nazwa}")
+            
+            # Próba kupna pola
+            if isinstance(aktualnie_pole, PoleNieruchomosciowe) and aktualnie_pole.wlasciciel is None:
+                print(f"Próba kupna pola {aktualnie_pole.nazwa}")
+                gracz.kup_nieruchomosc(aktualnie_pole)
+                
+                # Informacja o zakupie
+                if aktualnie_pole.wlasciciel == gracz:
+                    print(f"{gracz.nazwa} kupuje pole {aktualnie_pole.nazwa} za {aktualnie_pole.koszt}")
+                else:
+                    print(f"{gracz.nazwa} nie może kupić pola {aktualnie_pole.nazwa}")
 
-    # Wyświetlanie wyników
-    print(f"Pozycja Grzegorz: {grzegorz.pozycja}")
-    print(f"Pieniądze Grzegorz: {grzegorz.pieniadze}")
-    print("Miasta Grzegorz:", [miasto.name for miasto in grzegorz.nieruchomosci])
-
-    print(f"Pozycja Janusz: {janusz.pozycja}")
-    print(f"Pieniądze Janusz: {janusz.pieniadze}")
-    print("Miasta Janusz:", [miasto.name for miasto in janusz.nieruchomosci])
-
+        print("\nAktualny stan graczy:")
+        for gracz in gracze:
+            print(f"{gracz.nazwa}: pieniądze = {gracz.pieniadze}, pozycja = {gracz.pozycja}")
+            print(f"Nieruchomości: {[n.nazwa for n in gracz.nieruchomosci]}")
 
 if __name__ == "__main__":
     main()
+    demo_gry()
